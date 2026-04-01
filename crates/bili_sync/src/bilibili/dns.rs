@@ -72,12 +72,8 @@ impl Resolve for FallbackDnsResolver {
                     }
                 }
 
-                if system_error.is_some() && public_error.is_some() {
-                    return Err(box_error(CombinedDnsLookupError {
-                        host,
-                        system: system_error.expect("system_error must exist"),
-                        public: public_error.expect("public_error must exist"),
-                    }));
+                if let (Some(system), Some(public)) = (system_error.take(), public_error.take()) {
+                    return Err(box_error(CombinedDnsLookupError { host, system, public }));
                 }
             }
         })
