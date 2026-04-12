@@ -267,7 +267,7 @@ async fn get_manual_youtube_task(
         .find_also_related(youtube_channel::Entity)
         .one(&db)
         .await?
-        .ok_or_else(|| InnerApiError::NotFound(id))?;
+        .ok_or(InnerApiError::NotFound(id))?;
     let Some(source) = source else {
         return Err(InnerApiError::NotFound(id).into());
     };
