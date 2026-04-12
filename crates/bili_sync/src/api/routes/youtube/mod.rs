@@ -448,7 +448,7 @@ async fn process_manual_submit(
 async fn upsert_manual_source(
     db: &DatabaseConnection,
     resolved: &youtube::ResolvedSource,
-    download_path: &PathBuf,
+    #[allow(clippy::ptr_arg)] download_path: &PathBuf,
 ) -> Result<youtube_channel::Model, ApiError> {
     let existing = youtube_channel::Entity::find()
         .filter(youtube_channel::Column::SourceType.eq(youtube::SOURCE_TYPE_MANUAL))
