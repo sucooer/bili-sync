@@ -8,7 +8,7 @@ RUN set -eux; \
     sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://mirrors.aliyun.com/alpine|g' /etc/apk/repositories; \
     success=0; \
     for i in 1 2 3 4 5; do \
-      if apk add --no-cache ca-certificates tzdata ffmpeg python3 py3-pip nodejs npm; then success=1; break; fi; \
+      if apk add --no-cache ca-certificates tzdata ffmpeg python3 py3-pip; then success=1; break; fi; \
       echo "apk install failed (attempt ${i}), retrying..."; \
       sleep $((i * 3)); \
     done; \
