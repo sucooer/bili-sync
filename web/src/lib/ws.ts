@@ -174,6 +174,8 @@ export class WebSocketManager {
 	}
 
 	private async sendMessage(message: ClientEvent): Promise<void> {
+		const payload = JSON.stringify(message);
+
 		if (!this.connected) {
 			const connected = await this.connect();
 			if (!connected) {
@@ -181,14 +183,55 @@ export class WebSocketManager {
 			}
 		}
 
+		if (!this.socket || !(await this.waitForSocketOpen())) {
+			return;
+		}
+
 		try {
-			this.socket!.send(JSON.stringify(message));
+			this.socket!.send(payload);
 		} catch (error) {
 			console.error('Failed to send message:', error);
 			toast.error('发送 WebSocket 消息失败', {
-				description: `消息内容：${JSON.stringify(message)}\n错误信息：${error instanceof Error ? error.message : String(error)}`
+				description: `消息内容：${payload}\n错误信息：${error instanceof Error ? error.message : String(error)}`
 			});
 		}
+	}
+
+	private async waitForSocketOpen(): Promise<boolean> {
+		if (!this.socket) {
+			return false;
+		}
+
+		if (this.socket.readyState === WebSocket.OPEN) {
+			return true;
+		}
+
+		if (this.socket.readyState === WebSocket.CLOSED || this.socket.readyState === WebSocket.CLOSING) {
+			return false;
+		}
+
+		return new Promise<boolean>((resolve) => {
+			const socket = this.socket;
+			if (!socket) {
+				resolve(false);
+				return;
+			}
+
+			const finish = (isOpen: boolean) => {
+				socket.removeEventListener('open', onOpen);
+				socket.removeEventListener('close', onClose);
+				socket.removeEventListener('error', onError);
+				resolve(isOpen);
+			};
+
+			const onOpen = () => finish(true);
+			const onClose = () => finish(false);
+			const onError = () => finish(false);
+
+			socket.addEventListener('open', onOpen, { once: true });
+			socket.addEventListener('close', onClose, { once: true });
+			socket.addEventListener('error', onError, { once: true });
+		});
 	}
 
 	private async subscribe(eventType: EventType): Promise<void> {
