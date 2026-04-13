@@ -15,6 +15,19 @@ pub enum NFO<'a> {
     TVShow(TVShow<'a>),
     Upper(Upper),
     Episode(Episode<'a>),
+    YouTube(YouTubeVideo<'a>),
+}
+
+pub struct YouTubeVideo<'a> {
+    pub title: &'a str,
+    pub description: &'a str,
+    pub video_id: &'a str,
+    pub url: &'a str,
+    pub uploader: &'a str,
+    pub thumbnail: Option<&'a str>,
+    pub duration: Option<i64>,
+    pub publish_date: Option<&'a str>,
+    pub tags: Option<Vec<String>>,
 }
 
 pub struct Movie<'a> {
@@ -65,6 +78,9 @@ impl NFO<'_> {
             }
             NFO::Episode(episode) => {
                 Self::write_episode_nfo(writer, episode).await?;
+            }
+            NFO::YouTube(video) => {
+                Self::write_youtube_nfo(writer, video).await?;
             }
         }
         tokio_buffer.flush().await?;
@@ -237,6 +253,93 @@ impl NFO<'_> {
                     .create_element("episode")
                     .write_text_content_async(BytesText::new(&episode.pid))
                     .await?;
+                Ok(writer)
+            })
+            .await?;
+        Ok(())
+    }
+
+    async fn write_youtube_nfo(
+        mut writer: Writer<&mut BufWriter<&mut Vec<u8>>>,
+        video: YouTubeVideo<'_>,
+    ) -> Result<()> {
+        let duration_minutes = video.duration.map(|d| (d / 60).max(1).to_string()).unwrap_or_default();
+
+        writer
+            .create_element("movie")
+            .write_inner_content_async::<_, _, Error>(|writer| async move {
+                writer
+                    .create_element("plot")
+                    .write_cdata_content_async(BytesCData::new(video.description))
+                    .await?;
+                writer.create_element("outline").write_empty_async().await?;
+                writer
+                    .create_element("title")
+                    .write_text_content_async(BytesText::new(video.title))
+                    .await?;
+                writer
+                    .create_element("actor")
+                    .write_inner_content_async::<_, _, Error>(|writer| async move {
+                        writer
+                            .create_element("name")
+                            .write_text_content_async(BytesText::new(video.uploader))
+                            .await?;
+                        Ok(writer)
+                    })
+                    .await?;
+                if let Some(publish_date) = video.publish_date {
+                    if let Some((year, rest)) = publish_date.split_once('-') {
+                        writer
+                            .create_element("year")
+                            .write_text_content_async(BytesText::new(year))
+                            .await?;
+                        writer
+                            .create_element("premiered")
+                            .write_text_content_async(BytesText::new(publish_date))
+                            .await?;
+                        writer
+                            .create_element("aired")
+                            .write_text_content_async(BytesText::new(publish_date))
+                            .await?;
+                    }
+                }
+                if !duration_minutes.is_empty() {
+                    writer
+                        .create_element("runtime")
+                        .write_text_content_async(BytesText::new(&duration_minutes))
+                        .await?;
+                }
+                writer
+                    .create_element("studio")
+                    .write_text_content_async(BytesText::new("YouTube"))
+                    .await?;
+                writer
+                    .create_element("trailer")
+                    .write_text_content_async(BytesText::new(video.url))
+                    .await?;
+                writer
+                    .create_element("uniqueid")
+                    .with_attribute(("type", "youtube"))
+                    .write_text_content_async(BytesText::new(video.video_id))
+                    .await?;
+                if let Some(thumbnail) = video.thumbnail {
+                    writer
+                        .create_element("thumb")
+                        .write_text_content_async(BytesText::new(thumbnail))
+                        .await?;
+                }
+                writer
+                    .create_element("genre")
+                    .write_text_content_async(BytesText::new("YouTube"))
+                    .await?;
+                if let Some(tags) = video.tags {
+                    for tag in tags.iter().take(10) {
+                        writer
+                            .create_element("tag")
+                            .write_text_content_async(BytesText::new(tag))
+                            .await?;
+                    }
+                }
                 Ok(writer)
             })
             .await?;
