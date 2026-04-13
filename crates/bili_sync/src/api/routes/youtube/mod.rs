@@ -22,9 +22,14 @@ use crate::api::response::{
     YoutubePlaylistsResponse, YoutubeSourceDetail, YoutubeSourcesResponse, YoutubeStatusResponse, YoutubeSubscription,
     YoutubeSubscriptionsResponse, YoutubeTaskResponse,
 };
+use std::sync::Arc;
+
 use crate::api::wrapper::{ApiError, ApiResponse, ValidatedJson};
+use crate::bilibili::BiliClient;
 use crate::config::{PathSafeTemplate, TEMPLATE, VersionedConfig, default_manual_download_root};
-use crate::utils::status::YoutubeVideoStatus;
+use crate::notifier::Message;
+use crate::utils::notify::notify;
+use crate::utils::status::{STATUS_OK, YoutubeVideoStatus};
 use crate::youtube;
 
 pub(super) fn router() -> Router {
@@ -236,6 +241,7 @@ async fn insert_youtube_playlist(
 
 async fn manual_submit_youtube_link(
     Extension(db): Extension<DatabaseConnection>,
+    Extension(bili_client): Extension<Arc<BiliClient>>,
     ValidatedJson(request): ValidatedJson<YoutubeManualSubmitRequest>,
 ) -> Result<ApiResponse<YoutubeManualSubmitResponse>, ApiError> {
     let url = request.url.trim();
@@ -247,8 +253,9 @@ async fn manual_submit_youtube_link(
         .map(ToOwned::to_owned);
     let submit_url = url.to_owned();
     let db = db.clone();
+    let bili_client = bili_client.clone();
     tokio::spawn(async move {
-        if let Err(error) = process_manual_submit(db, submit_url.clone(), custom_path).await {
+        if let Err(error) = process_manual_submit(db, bili_client.as_ref(), submit_url.clone(), custom_path).await {
             error!("YouTube 手动提交链接失败（{}）：{:#?}", submit_url, error);
         }
     });
@@ -389,6 +396,7 @@ fn source_type_display(source_type: &str) -> &'static str {
 
 async fn process_manual_submit(
     db: DatabaseConnection,
+    bili_client: &BiliClient,
     url: String,
     custom_path: Option<String>,
 ) -> Result<(), ApiError> {
@@ -439,6 +447,18 @@ async fn process_manual_submit(
             youtube::process_video(&source, &video, &db, &config)
                 .await
                 .map_err(|error| InnerApiError::BadRequest(format!("{:#}", error)))?;
+
+            let updated_video = youtube_video::Entity::find_by_id(video.id)
+                .one(&db)
+                .await?
+                .ok_or_else(|| InnerApiError::BadRequest("视频不存在".to_owned()))?;
+            let status = YoutubeVideoStatus::from(updated_video.download_status);
+            let raw_status: [u32; 4] = status.into();
+            if raw_status.iter().all(|&s| s == STATUS_OK) {
+                let config = VersionedConfig::get().snapshot();
+                let message = format!("YouTube 视频「{}」已下载完成", resolved.name);
+                notify(&config, bili_client, Message { message: message.into(), image_url: resolved.thumbnail.clone() });
+            }
         }
     }
 
