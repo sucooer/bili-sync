@@ -29,7 +29,7 @@ use crate::bilibili::BiliClient;
 use crate::config::{PathSafeTemplate, TEMPLATE, VersionedConfig, default_manual_download_root};
 use crate::notifier::Message;
 use crate::utils::notify::notify;
-use crate::utils::status::{STATUS_OK, YoutubeVideoStatus};
+use crate::utils::status::YoutubeVideoStatus;
 use crate::youtube;
 
 pub(super) fn router() -> Router {
@@ -452,9 +452,7 @@ async fn process_manual_submit(
                 .one(&db)
                 .await?
                 .ok_or_else(|| InnerApiError::BadRequest("视频不存在".to_owned()))?;
-            let status = YoutubeVideoStatus::from(updated_video.download_status);
-            let raw_status: [u32; 4] = status.into();
-            if raw_status.iter().all(|&s| s == STATUS_OK) {
+            if !updated_video.path.as_ref().is_none_or(|p| p.trim().is_empty()) {
                 let config = VersionedConfig::get().snapshot();
                 let message = format!("YouTube 视频「{}」已下载完成", resolved.name);
                 notify(&config, bili_client, Message { message: message.into(), image_url: resolved.thumbnail.clone() });
