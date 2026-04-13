@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::Context;
 use axum::Router;
@@ -22,8 +23,6 @@ use crate::api::response::{
     YoutubePlaylistsResponse, YoutubeSourceDetail, YoutubeSourcesResponse, YoutubeStatusResponse, YoutubeSubscription,
     YoutubeSubscriptionsResponse, YoutubeTaskResponse,
 };
-use std::sync::Arc;
-
 use crate::api::wrapper::{ApiError, ApiResponse, ValidatedJson};
 use crate::bilibili::BiliClient;
 use crate::config::{PathSafeTemplate, TEMPLATE, VersionedConfig, default_manual_download_root};
@@ -455,7 +454,14 @@ async fn process_manual_submit(
             if !updated_video.path.as_ref().is_none_or(|p| p.trim().is_empty()) {
                 let config = VersionedConfig::get().snapshot();
                 let message = format!("YouTube 视频「{}」已下载完成", resolved.name);
-                notify(&config, bili_client, Message { message: message.into(), image_url: resolved.thumbnail.clone() });
+                notify(
+                    &config,
+                    bili_client,
+                    Message {
+                        message: message.into(),
+                        image_url: resolved.thumbnail.clone(),
+                    },
+                );
             }
         }
     }
