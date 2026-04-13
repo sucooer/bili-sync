@@ -10,6 +10,7 @@ use tokio::io::{AsyncWriteExt, BufWriter};
 use crate::config::NFOTimeType;
 
 #[allow(clippy::upper_case_acronyms)]
+#[expect(dead_code)]
 pub enum NFO<'a> {
     Movie(Movie<'a>),
     TVShow(TVShow<'a>),
@@ -287,9 +288,10 @@ impl NFO<'_> {
                         Ok(writer)
                     })
                     .await?;
-                if let Some(publish_date) = video.publish_date {
-                    if let Some((year, rest)) = publish_date.split_once('-') {
-                        writer
+                if let Some(publish_date) = video.publish_date
+                    && let Some((year, _rest)) = publish_date.split_once('-')
+                {
+                    writer
                             .create_element("year")
                             .write_text_content_async(BytesText::new(year))
                             .await?;
@@ -301,7 +303,10 @@ impl NFO<'_> {
                             .create_element("aired")
                             .write_text_content_async(BytesText::new(publish_date))
                             .await?;
-                    }
+                        writer
+                            .create_element("aired")
+                            .write_text_content_async(BytesText::new(publish_date))
+                            .await?;
                 }
                 if !duration_minutes.is_empty() {
                     writer
