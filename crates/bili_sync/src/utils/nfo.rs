@@ -292,21 +292,17 @@ impl NFO<'_> {
                     && let Some((year, _rest)) = publish_date.split_once('-')
                 {
                     writer
-                            .create_element("year")
-                            .write_text_content_async(BytesText::new(year))
-                            .await?;
-                        writer
-                            .create_element("premiered")
-                            .write_text_content_async(BytesText::new(publish_date))
-                            .await?;
-                        writer
-                            .create_element("aired")
-                            .write_text_content_async(BytesText::new(publish_date))
-                            .await?;
-                        writer
-                            .create_element("aired")
-                            .write_text_content_async(BytesText::new(publish_date))
-                            .await?;
+                        .create_element("year")
+                        .write_text_content_async(BytesText::new(year))
+                        .await?;
+                    writer
+                        .create_element("premiered")
+                        .write_text_content_async(BytesText::new(publish_date))
+                        .await?;
+                    writer
+                        .create_element("aired")
+                        .write_text_content_async(BytesText::new(publish_date))
+                        .await?;
                 }
                 if !duration_minutes.is_empty() {
                     writer
