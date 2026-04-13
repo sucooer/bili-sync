@@ -206,7 +206,10 @@ export class WebSocketManager {
 			return true;
 		}
 
-		if (this.socket.readyState === WebSocket.CLOSED || this.socket.readyState === WebSocket.CLOSING) {
+		if (
+			this.socket.readyState === WebSocket.CLOSED ||
+			this.socket.readyState === WebSocket.CLOSING
+		) {
 			return false;
 		}
 
