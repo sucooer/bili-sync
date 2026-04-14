@@ -6,6 +6,10 @@ node_modules
 docs/.vitepress/cache
 docs/.vitepress/dist
 
+# build artifacts
+*.tar.gz
+bili-sync-rs*
+
 # local test files
 .tmp/
 .codex
