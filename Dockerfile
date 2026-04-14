@@ -50,4 +50,4 @@ COPY --from=base / /
 
 ENTRYPOINT [ "/app/bili-sync-rs" ]
 
-VOLUME [ "/app/.config/bili-sync", "/download" ]
+VOLUME [ "/app/.config/bili-sync", "/app/youtube_helper", "/download" ]

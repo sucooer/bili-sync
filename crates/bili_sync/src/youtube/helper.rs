@@ -5,10 +5,19 @@ use serde::de::DeserializeOwned;
 use tokio::process::Command;
 
 use crate::config::{CONFIG_DIR, YoutubeSkipOption, YoutubeVideoFormat};
+use crate::config::current::is_container_runtime;
 use crate::utils::{compact_log_filename, compact_log_path, compact_log_text};
 
 const BRIDGE_PY: &str = include_str!("python/bridge.py");
 const CORE_PY: &str = include_str!("python/core.py");
+
+fn get_helper_dir() -> PathBuf {
+    if is_container_runtime() {
+        PathBuf::from("/app/youtube_helper")
+    } else {
+        CONFIG_DIR.join("youtube_helper")
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct Subscription {
@@ -182,7 +191,7 @@ where
 }
 
 async fn ensure_helper_scripts() -> Result<PathBuf> {
-    let helper_dir = CONFIG_DIR.join("youtube_helper");
+    let helper_dir = get_helper_dir();
     tokio::fs::create_dir_all(&helper_dir)
         .await
         .with_context(|| format!("failed to create youtube helper dir {}", helper_dir.display()))?;
