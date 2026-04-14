@@ -4,8 +4,7 @@ use anyhow::{Context, Result, bail};
 use serde::de::DeserializeOwned;
 use tokio::process::Command;
 
-use crate::config::current::is_container_runtime;
-use crate::config::{CONFIG_DIR, YoutubeSkipOption, YoutubeVideoFormat};
+use crate::config::{CONFIG_DIR, YoutubeSkipOption, YoutubeVideoFormat, is_container_runtime};
 use crate::utils::{compact_log_filename, compact_log_path, compact_log_text};
 
 const BRIDGE_PY: &str = include_str!("python/bridge.py");
