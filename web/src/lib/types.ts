@@ -41,9 +41,32 @@ export interface VideoInfo {
 	watch_later_id?: number;
 }
 
+export interface ContentVideoInfo {
+	key: string;
+	id: number;
+	platform: 'bilibili' | 'youtube';
+	bvid?: string | null;
+	name: string;
+	upper_name: string;
+	valid: boolean;
+	should_download: boolean;
+	download_status: number[];
+	collection_id?: number | null;
+	favorite_id?: number | null;
+	submission_id?: number | null;
+	watch_later_id?: number | null;
+	source_type?: string | null;
+	source_name?: string | null;
+	external_url?: string | null;
+}
+
 export interface VideosResponse {
-	videos: VideoInfo[];
+	videos: ContentVideoInfo[];
 	total_count: number;
+}
+
+export interface YoutubeTaskResponse {
+	video: ContentVideoInfo;
 }
 
 export interface PageInfo {
@@ -284,6 +307,20 @@ export interface SkipOption {
 	no_subtitle: boolean;
 }
 
+export interface YoutubeSkipOption {
+	no_poster: boolean;
+	no_video_nfo: boolean;
+	no_subtitle: boolean;
+}
+
+export type YoutubeVideoFormat = 'mp4' | 'mkv' | 'webm';
+
+export interface YoutubeOption {
+	channel_default_path: string;
+	video_format: YoutubeVideoFormat;
+	skip_option: YoutubeSkipOption;
+}
+
 export interface RateLimit {
 	limit: number;
 	duration: number;
@@ -316,7 +353,12 @@ export interface WebhookNotifier {
 	headers?: Record<string, string> | null;
 }
 
-export type Notifier = TelegramNotifier | WebhookNotifier;
+export interface ServerChan3Notifier {
+	type: 'serverChan3';
+	sendkey: string;
+}
+
+export type Notifier = TelegramNotifier | WebhookNotifier | ServerChan3Notifier;
 
 export type Trigger = number | string;
 
@@ -327,6 +369,7 @@ export interface Config {
 	filter_option: FilterOption;
 	danmaku_option: DanmakuOption;
 	skip_option: SkipOption;
+	youtube: YoutubeOption;
 	video_name: string;
 	page_name: string;
 	notifiers: Notifier[] | null;
@@ -365,7 +408,6 @@ export interface SysInfo {
 	used_cpu: number;
 	process_cpu: number;
 	total_disk: number;
-	used_disk: number;
 	available_disk: number;
 }
 
@@ -378,6 +420,11 @@ export interface TaskStatus {
 
 export interface UpdateVideoSourceResponse {
 	ruleDisplay: string;
+}
+
+export interface ManualDownloadRequest {
+	video_url: string;
+	download_path?: string;
 }
 
 // 扫码登录相关类型
@@ -400,3 +447,92 @@ export type QrcodePollResponse =
 			status: 'expired';
 			message: string;
 	  };
+
+export interface YoutubeStatusResponse {
+	cookieConfigured: boolean;
+	cookiePath?: string | null;
+}
+
+export interface YoutubeSubscription {
+	channelId: string;
+	name: string;
+	url: string;
+	thumbnail?: string | null;
+	subscribed: boolean;
+}
+
+export interface YoutubeSubscriptionsResponse {
+	channels: YoutubeSubscription[];
+	total: number;
+}
+
+export interface YoutubePlaylist {
+	playlistId: string;
+	name: string;
+	url: string;
+	thumbnail?: string | null;
+	ownerName?: string | null;
+	videoCount?: number | null;
+	added: boolean;
+}
+
+export interface YoutubePlaylistsResponse {
+	playlists: YoutubePlaylist[];
+	total: number;
+}
+
+export interface YoutubeSource {
+	id: number;
+	sourceType: 'channel' | 'playlist';
+	channelId: string;
+	name: string;
+	url: string;
+	thumbnail?: string | null;
+	path: string;
+	latestPublishedAt?: string | null;
+	enabled: boolean;
+}
+
+export interface YoutubeSourcesResponse {
+	sources: YoutubeSource[];
+}
+
+export interface InsertYoutubeChannelRequest {
+	channelId: string;
+	name: string;
+	url: string;
+	thumbnail?: string | null;
+	path: string;
+}
+
+export interface InsertYoutubePlaylistRequest {
+	playlistId: string;
+	name: string;
+	url: string;
+	thumbnail?: string | null;
+	path: string;
+}
+
+export interface UpdateYoutubeChannelRequest {
+	path: string;
+	enabled: boolean;
+}
+
+export interface SaveYoutubeCookieRequest {
+	content: string;
+}
+
+export interface YoutubeCookieSaveResponse {
+	saved: boolean;
+	path: string;
+}
+
+export interface YoutubeManualSubmitRequest {
+	url: string;
+	path?: string | null;
+}
+
+export interface YoutubeManualSubmitResponse {
+	queued: boolean;
+	url: string;
+}

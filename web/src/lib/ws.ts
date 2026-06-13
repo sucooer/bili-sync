@@ -41,7 +41,10 @@ export class WebSocketManager {
 	private sysInfoSubscribers: Set<SysInfoCallback> = new Set();
 
 	private subscribedEvents: Set<EventType> = new Set();
-	private connectionPromise: Promise<void> | null = null;
+	private connectionPromise: Promise<boolean> | null = null;
+	private authCheckPromise: Promise<boolean> | null = null;
+	private authVerified = false;
+	private intentionallyClosing = false;
 
 	private constructor() {}
 
@@ -52,16 +55,60 @@ export class WebSocketManager {
 		return WebSocketManager.instance;
 	}
 
+	private getAuthToken(): string | null {
+		const token = api.getAuthToken()?.trim();
+		return token ? token : null;
+	}
+
+	private async ensureAuthVerified(): Promise<boolean> {
+		const token = this.getAuthToken();
+		if (!token) {
+			return false;
+		}
+		if (this.authVerified) {
+			return true;
+		}
+		if (this.authCheckPromise) {
+			return this.authCheckPromise;
+		}
+
+		this.authCheckPromise = fetch('/api/config', {
+			headers: {
+				Authorization: token
+			}
+		})
+			.then((response) => {
+				this.authVerified = response.ok;
+				return response.ok;
+			})
+			.catch((error) => {
+				console.error('Failed to verify WebSocket auth token:', error);
+				return false;
+			})
+			.finally(() => {
+				this.authCheckPromise = null;
+			});
+
+		return this.authCheckPromise;
+	}
+
 	// 连接 WebSocket
-	public connect(): Promise<void> {
-		if (this.connected) return Promise.resolve();
+	public async connect(): Promise<boolean> {
+		if (this.connected) return true;
 		if (this.connectionPromise) return this.connectionPromise;
+		if (!(await this.ensureAuthVerified())) {
+			return false;
+		}
 
-		this.connectionPromise = new Promise((resolve, reject) => {
-			const token = api.getAuthToken() || '';
+		const token = this.getAuthToken();
+		if (!token) {
+			return false;
+		}
 
+		this.connectionPromise = new Promise((resolve) => {
 			try {
 				const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+				this.intentionallyClosing = false;
 				// 使用 base64URL no padding 编码 token 以避免特殊字符问题
 				this.socket = new WebSocket(
 					`${protocol}${window.location.host}/api/ws`,
@@ -70,28 +117,34 @@ export class WebSocketManager {
 				this.socket.onopen = () => {
 					this.connected = true;
 					this.reconnectAttempts = 0;
+					this.authVerified = true;
 					this.connectionPromise = null;
-					this.resubscribeEvents();
-					resolve();
+					void this.resubscribeEvents();
+					resolve(true);
 				};
 
 				this.socket.onmessage = this.handleMessage.bind(this);
 
 				this.socket.onclose = () => {
 					this.connected = false;
+					this.socket = null;
 					this.connectionPromise = null;
+					if (this.intentionallyClosing) {
+						this.intentionallyClosing = false;
+						resolve(false);
+						return;
+					}
 					this.scheduleReconnect();
+					resolve(false);
 				};
 
 				this.socket.onerror = (error) => {
 					console.error('WebSocket error:', error);
-					this.connectionPromise = null;
-					reject(error);
 					toast.error('WebSocket 连接发生错误，请检查网络或稍后重试');
 				};
 			} catch (error) {
 				this.connectionPromise = null;
-				reject(error);
+				resolve(false);
 				console.error('Failed to create WebSocket:', error);
 				toast.error('创建 WebSocket 连接失败，请检查网络或稍后重试');
 				this.scheduleReconnect();
@@ -121,33 +174,85 @@ export class WebSocketManager {
 	}
 
 	private async sendMessage(message: ClientEvent): Promise<void> {
+		const payload = JSON.stringify(message);
+
 		if (!this.connected) {
-			await this.connect();
+			const connected = await this.connect();
+			if (!connected) {
+				return;
+			}
+		}
+
+		if (!this.socket || !(await this.waitForSocketOpen())) {
+			return;
 		}
 
 		try {
-			this.socket!.send(JSON.stringify(message));
+			this.socket!.send(payload);
 		} catch (error) {
 			console.error('Failed to send message:', error);
 			toast.error('发送 WebSocket 消息失败', {
-				description: `消息内容：${JSON.stringify(message)}\n错误信息：${error instanceof Error ? error.message : String(error)}`
+				description: `消息内容：${payload}\n错误信息：${error instanceof Error ? error.message : String(error)}`
 			});
 		}
+	}
+
+	private async waitForSocketOpen(): Promise<boolean> {
+		if (!this.socket) {
+			return false;
+		}
+
+		if (this.socket.readyState === WebSocket.OPEN) {
+			return true;
+		}
+
+		if (
+			this.socket.readyState === WebSocket.CLOSED ||
+			this.socket.readyState === WebSocket.CLOSING
+		) {
+			return false;
+		}
+
+		return new Promise<boolean>((resolve) => {
+			const socket = this.socket;
+			if (!socket) {
+				resolve(false);
+				return;
+			}
+
+			const finish = (isOpen: boolean) => {
+				socket.removeEventListener('open', onOpen);
+				socket.removeEventListener('close', onClose);
+				socket.removeEventListener('error', onError);
+				resolve(isOpen);
+			};
+
+			const onOpen = () => finish(true);
+			const onClose = () => finish(false);
+			const onError = () => finish(false);
+
+			socket.addEventListener('open', onOpen, { once: true });
+			socket.addEventListener('close', onClose, { once: true });
+			socket.addEventListener('error', onError, { once: true });
+		});
 	}
 
 	private async subscribe(eventType: EventType): Promise<void> {
 		if (this.subscribedEvents.has(eventType)) return;
 
-		await this.sendMessage({ subscribe: eventType });
 		this.subscribedEvents.add(eventType);
+		await this.sendMessage({ subscribe: eventType });
 	}
 
 	// 取消订阅事件
 	private async unsubscribe(eventType: EventType): Promise<void> {
 		if (!this.subscribedEvents.has(eventType)) return;
 
-		await this.sendMessage({ unsubscribe: eventType });
 		this.subscribedEvents.delete(eventType);
+		if (!this.connected) {
+			return;
+		}
+		await this.sendMessage({ unsubscribe: eventType });
 	}
 
 	private async resubscribeEvents(): Promise<void> {
@@ -159,6 +264,10 @@ export class WebSocketManager {
 	}
 
 	private scheduleReconnect(): void {
+		if (!this.getAuthToken()) {
+			return;
+		}
+
 		if (this.reconnectTimer !== null) {
 			clearTimeout(this.reconnectTimer);
 		}
@@ -173,8 +282,27 @@ export class WebSocketManager {
 
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectAttempts++;
-			this.connect();
+			void this.connect();
 		}, delay);
+	}
+
+	public markAuthVerified(): void {
+		this.authVerified = true;
+		if (!this.connected && this.subscribedEvents.size > 0) {
+			void this.connect();
+		}
+	}
+
+	public markAuthInvalid(): void {
+		this.authVerified = false;
+		this.authCheckPromise = null;
+		this.disconnect(false);
+	}
+
+	public onAuthTokenChanged(): void {
+		this.authVerified = false;
+		this.authCheckPromise = null;
+		this.disconnect(false);
 	}
 
 	public subscribeToLogs(callback: LogsCallback): () => void {
@@ -253,10 +381,13 @@ export class WebSocketManager {
 		});
 	}
 
-	public disconnect(): void {
+	public disconnect(clearSubscriptions: boolean = true): void {
 		if (this.socket) {
+			this.intentionallyClosing = true;
 			this.socket.close();
 			this.socket = null;
+		} else {
+			this.intentionallyClosing = false;
 		}
 
 		if (this.reconnectTimer !== null) {
@@ -266,7 +397,9 @@ export class WebSocketManager {
 
 		this.connected = false;
 		this.connectionPromise = null;
-		this.subscribedEvents.clear();
+		if (clearSubscriptions) {
+			this.subscribedEvents.clear();
+		}
 	}
 }
 
