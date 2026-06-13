@@ -141,6 +141,7 @@ impl DownloadTaskManager {
                     &initial_config,
                     &cx.bili_client,
                     format!("初始化视频下载任务失败：{:#}", err),
+                    &err,
                 );
                 None
             }
@@ -194,6 +195,7 @@ impl DownloadTaskManager {
                                 &initial_config,
                                 &cx.bili_client,
                                 format!("重载视频下载任务失败：{:#}", err),
+                                &err,
                             );
                             None
                         }
@@ -235,6 +237,7 @@ impl DownloadTaskManager {
                             &config,
                             &cx.bili_client,
                             format!("本轮凭据检查与刷新任务执行遇到错误：{:#}", e),
+                            &e,
                         );
                     }
                 }
@@ -286,6 +289,7 @@ impl DownloadTaskManager {
                             &config,
                             &cx.bili_client,
                             format!("本轮视频下载任务执行遇到错误：{:#}", e),
+                            &e,
                         );
                     }
                 }
@@ -394,6 +398,7 @@ async fn download_bilibili_sources(
                 config,
                 &bili_client,
                 format!("处理 {} 时遇到错误：{:#}，跳过该视频源", display_name, e),
+                &e,
             );
             if let Ok(e) = e.downcast::<BiliError>()
                 && e.is_risk_control_related()
