@@ -92,7 +92,7 @@ jobs:
           command: build
           target: ${{ matrix.platform.target }}
           toolchain: ${{ steps.read_rust_toolchain.outputs.value }}
-          args: "--locked --release"
+          args: "--release"
           strip: true
       - name: Package as archive
         shell: bash
