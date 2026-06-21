@@ -56,7 +56,7 @@ pub async fn new_manual_download_task(
             crate::task::download_video_by_bvid(&db, bili_client.as_ref(), &bvid, download_path.as_deref()).await
         {
             let config = VersionedConfig::get().snapshot();
-            error_and_notify(&config, bili_client.as_ref(), format!("手动下载任务失败：{:#}", e));
+            error_and_notify(&config, bili_client.as_ref(), format!("手动下载任务失败：{:#}", e), &e);
         }
     });
     Ok(ApiResponse::ok(true))
