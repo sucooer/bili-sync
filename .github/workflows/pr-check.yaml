@@ -3,13 +3,13 @@ name: Check
 on:
   push:
     branches:
-      - main
+      - rework-ci
   pull_request:
     types: ["opened", "reopened", "synchronize", "ready_for_review"]
 
 concurrency:
   # Allow only one workflow per any non-`main` branch.
-  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.ref_name == 'main' && github.sha || 'anysha' }}
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.ref_name == 'rework-ci' && github.sha || 'anysha' }}
   cancel-in-progress: true
 
 env:
