@@ -8,6 +8,7 @@ use futures::{StreamExt, TryStreamExt};
 use regex::Regex;
 use sea_orm::ActiveValue::Set;
 use sea_orm::TryIntoModel;
+
 use crate::adapter::{VideoSource, VideoSourceEnum};
 use crate::bilibili::{BiliClient, BiliError, Video, VideoInfo};
 use crate::config::{PathSafeTemplate, TEMPLATE, VersionedConfig, default_manual_download_root};
