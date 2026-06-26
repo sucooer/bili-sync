@@ -4,13 +4,10 @@ use std::sync::LazyLock;
 use anyhow::{Context, Result, bail};
 use bili_sync_entity::upper_vec::Upper;
 use bili_sync_entity::{page, video, watch_later};
-use futures::StreamExt;
-use futures::stream::FuturesUnordered;
+use futures::{StreamExt, TryStreamExt};
 use regex::Regex;
 use sea_orm::ActiveValue::Set;
 use sea_orm::TryIntoModel;
-use tokio::sync::Semaphore;
-
 use crate::adapter::{VideoSource, VideoSourceEnum};
 use crate::bilibili::{BiliClient, BiliError, Video, VideoInfo};
 use crate::config::{PathSafeTemplate, TEMPLATE, VersionedConfig, default_manual_download_root};
@@ -249,11 +246,9 @@ async fn dispatch_manual_download_page(
     if !should_run {
         return Ok(ExecutionStatus::Skipped);
     }
-    let child_semaphore = Semaphore::new(cx.config.concurrent_limit.page);
-    let mut tasks = page_models
-        .into_iter()
-        .map(|page_model| download_page(video_model, page_model, &child_semaphore, base_path, cx))
-        .collect::<FuturesUnordered<_>>();
+    let mut tasks = futures::stream::iter(page_models)
+        .map(|page_model| download_page(video_model, page_model, base_path, cx))
+        .buffer_unordered(cx.config.concurrent_limit.page);
     let mut target_status = STATUS_OK;
     while let Some(res) = tasks.next().await {
         let model = res?;
