@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use anyhow::{Context, Result, bail};
 use bili_sync_entity::upper_vec::Upper;
 use bili_sync_entity::{page, video, watch_later};
-use futures::{StreamExt, TryStreamExt};
+use futures::StreamExt;
 use regex::Regex;
 use sea_orm::ActiveValue::Set;
 use sea_orm::TryIntoModel;
