@@ -6,7 +6,6 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import type { VideoInfo } from '$lib/types';
 	import BrushCleaningIcon from '@lucide/svelte/icons/brush-cleaning';
 	import ClockIcon from '@lucide/svelte/icons/clock';
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
