@@ -245,6 +245,7 @@ export interface VideoSourceDetail {
 	path: string;
 	rule: Rule | null;
 	ruleDisplay: string | null;
+	filterOption: FilterOption | null;
 	useDynamicApi: boolean | null;
 	enabled: boolean;
 	latestRowAt: string | null;
@@ -261,6 +262,7 @@ export interface UpdateVideoSourceRequest {
 	path: string;
 	enabled: boolean;
 	rule?: Rule | null;
+	filterOption?: FilterOption | null;
 	useDynamicApi?: boolean | null;
 }
 

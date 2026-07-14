@@ -13,6 +13,7 @@ mod m20251009_123713_add_use_dynamic_api;
 mod m20260324_055217_add_staff;
 mod m20260329_080000_add_youtube_support;
 mod m20260329_153000_extend_youtube_sources;
+mod m20260712_123205_add_filter_option;
 
 pub struct Migrator;
 
@@ -33,6 +34,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260324_055217_add_staff::Migration),
             Box::new(m20260329_080000_add_youtube_support::Migration),
             Box::new(m20260329_153000_extend_youtube_sources::Migration),
+            Box::new(m20260712_123205_add_filter_option::Migration),
         ]
     }
 }
