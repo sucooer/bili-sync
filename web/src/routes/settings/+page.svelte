@@ -547,8 +547,7 @@
 								class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-56 w-full rounded-md border px-3 py-2 font-mono text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 								bind:value={youtubeCookieText}
 								placeholder="# Netscape HTTP Cookie File&#10;.youtube.com	TRUE	/	TRUE	0	SID	..."
-								spellcheck="false"
-							></textarea>
+								spellcheck="false"></textarea>
 							<p class="text-muted-foreground text-xs">
 								支持直接粘贴导出的 `cookies.txt` 内容。保存后不会在页面回显 Cookie 明文。
 							</p>
