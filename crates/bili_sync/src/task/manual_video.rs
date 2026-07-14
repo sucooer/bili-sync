@@ -82,6 +82,7 @@ pub async fn download_video_by_bvid(
         created_at: String::new(),
         latest_row_at: chrono::Utc::now().naive_utc(),
         rule: None,
+        filter_option: None,
         enabled: false,
     });
     video_source.create_dir_all().await?;
@@ -181,7 +182,7 @@ async fn download_single_video(
         })
         .collect::<Vec<(Upper<i64, &str>, PathBuf)>>();
     let downloader = Downloader::new(bili_client.client.clone());
-    let cx = DownloadContext::new(bili_client, video_source, template, connection, &downloader, config);
+    let cx = DownloadContext::new(bili_client, video_source, template, connection, &downloader, config, &config.filter_option);
     let (res_1, res_2, res_3, res_4, res_5) = tokio::join!(
         fetch_video_poster(
             separate_status[0] && !is_single_page && !config.skip_option.no_poster,
