@@ -14,6 +14,7 @@
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
 	import SquareArrowOutUpRightIcon from '@lucide/svelte/icons/square-arrow-out-up-right';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import { goto } from '$app/navigation';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';

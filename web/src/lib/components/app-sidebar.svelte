@@ -5,6 +5,8 @@
 	import FilePlayIcon from '@lucide/svelte/icons/file-play';
 	import FoldersIcon from '@lucide/svelte/icons/folders';
 	import HeartIcon from '@lucide/svelte/icons/heart';
+	import LinkIcon from '@lucide/svelte/icons/link';
+	import ListVideoIcon from '@lucide/svelte/icons/list-video';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import Settings2Icon from '@lucide/svelte/icons/settings-2';
 	import SquareTerminalIcon from '@lucide/svelte/icons/square-terminal';

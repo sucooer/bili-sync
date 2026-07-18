@@ -15,6 +15,7 @@ mod dashboard;
 mod login;
 mod me;
 mod task;
+mod upload_records;
 mod video_sources;
 mod videos;
 mod ws;
@@ -33,6 +34,7 @@ pub fn router() -> Router {
             .merge(dashboard::router())
             .merge(ws::router())
             .merge(task::router())
+            .merge(upload_records::router())
             .merge(youtube::router())
             .layer(middleware::from_fn(auth)),
     )

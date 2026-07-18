@@ -11,6 +11,7 @@ use sea_orm::entity::prelude::*;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 
+use crate::auto_upload::upload_youtube_file;
 use crate::config::{CONFIG_DIR, Config};
 use crate::utils::compact_log_text;
 use crate::utils::status::{STATUS_COMPLETED, STATUS_MAX_RETRY, STATUS_OK, YoutubeVideoStatus};
@@ -271,6 +272,7 @@ pub(crate) async fn process_video(
             raw_status[3] = STATUS_OK;
             status = YoutubeVideoStatus::from(raw_status);
 
+            let local_path = Path::new(&result.output_dir).join(&result.video_file);
             let mut active_model: youtube_video::ActiveModel = video.clone().into();
             active_model.download_status = Set(status.into());
             active_model.path = Set(Some(result.output_dir));
@@ -278,6 +280,17 @@ pub(crate) async fn process_video(
                 .update(connection)
                 .await
                 .context("failed to persist youtube video status")?;
+            if let Err(error) = upload_youtube_file(
+                connection,
+                &config.auto_upload,
+                video.id,
+                Path::new(&source.path),
+                &local_path,
+            )
+            .await
+            {
+                error!("YouTube 视频「{}」自动上传失败：{:#}", video_log_title, error);
+            }
             info!(
                 "YouTube 视频「{}」处理完成，文件：{}",
                 video_log_title,

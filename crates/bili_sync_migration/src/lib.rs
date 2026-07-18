@@ -14,6 +14,8 @@ mod m20260324_055217_add_staff;
 mod m20260329_080000_add_youtube_support;
 mod m20260329_153000_extend_youtube_sources;
 mod m20260712_123205_add_filter_option;
+mod m20260717_120000_add_upload_record;
+mod m20260718_000000_remove_upload_record_fks;
 
 pub struct Migrator;
 
@@ -35,6 +37,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260329_080000_add_youtube_support::Migration),
             Box::new(m20260329_153000_extend_youtube_sources::Migration),
             Box::new(m20260712_123205_add_filter_option::Migration),
+            Box::new(m20260717_120000_add_upload_record::Migration),
+            Box::new(m20260718_000000_remove_upload_record_fks::Migration),
         ]
     }
 }

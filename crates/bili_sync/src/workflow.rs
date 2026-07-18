@@ -13,6 +13,7 @@ use sea_orm::entity::prelude::*;
 use tokio::fs;
 
 use crate::adapter::{VideoSource, VideoSourceEnum};
+use crate::auto_upload::upload_downloaded_file;
 use crate::bilibili::{BestStream, BiliClient, BiliError, Dimension, PageInfo, Video, VideoInfo};
 use crate::config::{ARGS, Config, PathSafeTemplate};
 use crate::downloader::Downloader;
@@ -581,9 +582,23 @@ pub async fn download_page(
             bail!(e);
         }
     }
+    let (page_id, page_pid) = (page_model.id, page_model.pid);
     let mut page_active_model: page::ActiveModel = page_model.into();
     page_active_model.download_status = Set(status.into());
     page_active_model.path = Set(Some(video_path.to_string_lossy().to_string()));
+    if status.get_completed()
+        && let Err(e) = upload_downloaded_file(
+            cx.connection,
+            &cx.config.auto_upload,
+            video_model.id,
+            page_id,
+            base_path.parent().context("invalid video base path")?,
+            &video_path,
+        )
+        .await
+    {
+        error!("处理视频「{}」第 {} 页自动上传失败：{:#}", video_log_name, page_pid, e);
+    }
     Ok(page_active_model)
 }
 

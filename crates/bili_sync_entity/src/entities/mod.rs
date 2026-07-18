@@ -7,6 +7,7 @@ pub mod config;
 pub mod favorite;
 pub mod page;
 pub mod submission;
+pub mod upload_record;
 pub mod video;
 pub mod watch_later;
 pub mod youtube_channel;

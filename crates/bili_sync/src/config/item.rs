@@ -106,6 +106,74 @@ pub struct YoutubeOption {
     pub skip_option: YoutubeSkipOption,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct AutoUploadOption {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub openlist: OpenListOption,
+    #[serde(default = "default_auto_upload_retry_attempts")]
+    pub retry_attempts: u32,
+    #[serde(default = "default_auto_upload_retry_delay_secs")]
+    pub retry_delay_secs: u64,
+    #[serde(default)]
+    pub delete_local_after_upload: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct OpenListOption {
+    #[serde(default)]
+    pub endpoint: String,
+    #[serde(default)]
+    pub remote_dir: String,
+    #[serde(default)]
+    pub auth: OpenListAuth,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum OpenListAuth {
+    #[default]
+    None,
+    Token {
+        token: String,
+    },
+    Password {
+        username: String,
+        password: String,
+    },
+}
+
+fn default_auto_upload_retry_attempts() -> u32 {
+    3
+}
+
+fn default_auto_upload_retry_delay_secs() -> u64 {
+    10
+}
+
+impl Default for AutoUploadOption {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            openlist: OpenListOption::default(),
+            retry_attempts: default_auto_upload_retry_attempts(),
+            retry_delay_secs: default_auto_upload_retry_delay_secs(),
+            delete_local_after_upload: false,
+        }
+    }
+}
+
+impl Default for OpenListOption {
+    fn default() -> Self {
+        Self {
+            endpoint: String::new(),
+            remote_dir: String::new(),
+            auth: OpenListAuth::None,
+        }
+    }
+}
+
 impl Default for YoutubeOption {
     fn default() -> Self {
         Self {

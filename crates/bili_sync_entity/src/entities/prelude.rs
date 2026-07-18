@@ -2,6 +2,7 @@
 
 pub use super::favorite::Entity as Favorite;
 pub use super::page::Entity as Page;
+pub use super::upload_record::Entity as UploadRecord;
 pub use super::video::Entity as Video;
 pub use super::youtube_channel::Entity as YoutubeChannel;
 pub use super::youtube_video::Entity as YoutubeVideo;

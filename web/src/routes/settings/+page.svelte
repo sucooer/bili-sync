@@ -103,6 +103,9 @@
 			const response = await api.getConfig();
 			config = response.data;
 			formData = { ...config };
+			if (formData.auto_upload.openlist.auth.type === 'none') {
+				formData.auto_upload.openlist.auth = { type: 'token', token: '' };
+			}
 			await loadYoutubeStatus();
 
 			// 根据 interval 的类型初始化输入框
@@ -207,6 +210,14 @@
 		showQrLoginDialog = false;
 	}
 
+	function setOpenListAuthType(authType: 'token' | 'password') {
+		if (!formData) return;
+		formData.auto_upload.openlist.auth =
+			authType === 'token'
+				? { type: 'token', token: '' }
+				: { type: 'password', username: '', password: '' };
+	}
+
 	async function handleSaveYoutubeCookie() {
 		if (!youtubeCookieText.trim()) {
 			toast.error('请先粘贴 YouTube Cookie 内容');
@@ -309,10 +320,11 @@
 	{:else if formData}
 		<div class="space-y-6">
 			<Tabs.Root value="basic" class="w-full">
-				<Tabs.List class="grid w-full grid-cols-7">
+				<Tabs.List class="grid w-full grid-cols-8">
 					<Tabs.Trigger value="basic">基本设置</Tabs.Trigger>
 					<Tabs.Trigger value="auth">B站认证</Tabs.Trigger>
 					<Tabs.Trigger value="youtube">YouTube</Tabs.Trigger>
+					<Tabs.Trigger value="upload">自动上传</Tabs.Trigger>
 					<Tabs.Trigger value="filter">视频处理</Tabs.Trigger>
 					<Tabs.Trigger value="danmaku">弹幕渲染</Tabs.Trigger>
 					<Tabs.Trigger value="notifiers">通知设置</Tabs.Trigger>
@@ -611,6 +623,127 @@
 							/>
 							<Label for="youtube-skip-subtitle">跳过字幕</Label>
 						</div>
+					</div>
+				</Tabs.Content>
+
+				<!-- 自动上传 -->
+				<Tabs.Content value="upload" class="mt-6 space-y-6">
+					<div class="flex items-center justify-between rounded-lg border p-4">
+						<div class="space-y-1">
+							<Label for="auto-upload-enabled">启用自动上传</Label>
+							<p class="text-muted-foreground text-sm">
+								分页视频或 YouTube 视频下载完成后，自动上传到 OpenList 目标目录。
+							</p>
+						</div>
+						<Switch id="auto-upload-enabled" bind:checked={formData.auto_upload.enabled} />
+					</div>
+
+					<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+						<div class="space-y-2">
+							<Label for="openlist-endpoint">OpenList 地址</Label>
+							<Input
+								id="openlist-endpoint"
+								placeholder="https://openlist.example.com"
+								bind:value={formData.auto_upload.openlist.endpoint}
+							/>
+							<p class="text-muted-foreground text-xs">
+								不要以 / 结尾，例如 https://openlist.example.com
+							</p>
+						</div>
+						<div class="space-y-2">
+							<Label for="openlist-remote-dir">OpenList 目标目录</Label>
+							<Input
+								id="openlist-remote-dir"
+								placeholder="/BiliSync"
+								bind:value={formData.auto_upload.openlist.remote_dir}
+							/>
+							<p class="text-muted-foreground text-xs">上传文件会保存到该目录下。</p>
+						</div>
+					</div>
+
+					<Separator />
+
+					<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+						<div class="space-y-2">
+							<Label for="openlist-auth-type">认证方式</Label>
+							<select
+								id="openlist-auth-type"
+								class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+								value={formData.auto_upload.openlist.auth.type === 'password'
+									? 'password'
+									: 'token'}
+								onchange={(event) =>
+									setOpenListAuthType(
+										(event.currentTarget as HTMLSelectElement).value as 'token' | 'password'
+									)}
+							>
+								<option value="token">令牌</option>
+								<option value="password">账号密码</option>
+							</select>
+						</div>
+						{#if formData.auto_upload.openlist.auth.type === 'token'}
+							<div class="space-y-2">
+								<Label for="openlist-token">OpenList Token</Label>
+								<PasswordInput
+									id="openlist-token"
+									placeholder="请输入 OpenList Token"
+									bind:value={formData.auto_upload.openlist.auth.token}
+								/>
+							</div>
+						{:else if formData.auto_upload.openlist.auth.type === 'password'}
+							<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+								<div class="space-y-2">
+									<Label for="openlist-username">OpenList 用户名</Label>
+									<Input
+										id="openlist-username"
+										placeholder="用户名"
+										bind:value={formData.auto_upload.openlist.auth.username}
+									/>
+								</div>
+								<div class="space-y-2">
+									<Label for="openlist-password">OpenList 密码</Label>
+									<PasswordInput
+										id="openlist-password"
+										placeholder="密码"
+										bind:value={formData.auto_upload.openlist.auth.password}
+									/>
+								</div>
+							</div>
+						{/if}
+					</div>
+
+					<Separator />
+
+					<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+						<div class="space-y-2">
+							<Label for="auto-upload-retry-attempts">失败重试次数</Label>
+							<Input
+								id="auto-upload-retry-attempts"
+								type="number"
+								min="1"
+								bind:value={formData.auto_upload.retry_attempts}
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label for="auto-upload-retry-delay">重试间隔（秒）</Label>
+							<Input
+								id="auto-upload-retry-delay"
+								type="number"
+								min="0"
+								bind:value={formData.auto_upload.retry_delay_secs}
+							/>
+						</div>
+					</div>
+
+					<div class="flex items-center justify-between rounded-lg border p-4">
+						<div class="space-y-1">
+							<Label for="auto-upload-delete-local">上传成功后删除本地文件</Label>
+							<p class="text-muted-foreground text-sm">默认关闭。开启后仅删除已上传的视频文件。</p>
+						</div>
+						<Switch
+							id="auto-upload-delete-local"
+							bind:checked={formData.auto_upload.delete_local_after_upload}
+						/>
 					</div>
 				</Tabs.Content>
 

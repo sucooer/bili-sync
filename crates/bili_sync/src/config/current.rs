@@ -14,7 +14,9 @@ use crate::config::default::{
     default_auth_token, default_bind_address, default_collection_path, default_favorite_path, default_submission_path,
     default_time_format,
 };
-use crate::config::item::{ConcurrentLimit, NFOTimeType, SkipOption, Trigger, YoutubeOption};
+use crate::config::item::{
+    AutoUploadOption, ConcurrentLimit, NFOTimeType, OpenListAuth, SkipOption, Trigger, YoutubeOption,
+};
 use crate::notifier::Notifier;
 use crate::utils::model::{load_db_config, save_db_config};
 
@@ -50,6 +52,8 @@ pub struct Config {
     pub skip_option: SkipOption,
     #[serde(default)]
     pub youtube: YoutubeOption,
+    #[serde(default)]
+    pub auto_upload: AutoUploadOption,
     pub video_name: String,
     pub page_name: String,
     #[serde(default)]
@@ -95,6 +99,20 @@ impl Config {
         }
         if self.youtube.channel_default_path.is_empty() {
             errors.push("未设置 YouTube 频道默认路径模板");
+        }
+        if self.auto_upload.enabled {
+            if self.auto_upload.openlist.endpoint.trim().is_empty() {
+                errors.push("开启自动上传时必须设置 OpenList 地址");
+            }
+            if self.auto_upload.openlist.remote_dir.trim().is_empty() {
+                errors.push("开启自动上传时必须设置 OpenList 目标目录");
+            }
+            if matches!(self.auto_upload.openlist.auth, OpenListAuth::None) {
+                errors.push("开启自动上传时必须设置 OpenList 认证信息");
+            }
+            if self.auto_upload.retry_attempts == 0 {
+                errors.push("自动上传重试次数必须大于 0");
+            }
         }
         let credential = &self.credential;
         if credential.sessdata.is_empty()
@@ -143,6 +161,7 @@ impl Default for Config {
             danmaku_option: DanmakuOption::default(),
             skip_option: SkipOption::default(),
             youtube: YoutubeOption::default(),
+            auto_upload: AutoUploadOption::default(),
             video_name: "{{title}}".to_owned(),
             page_name: "{{bvid}}".to_owned(),
             notifiers: None,

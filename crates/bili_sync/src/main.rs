@@ -3,6 +3,7 @@ extern crate tracing;
 
 mod adapter;
 mod api;
+mod auto_upload;
 mod bilibili;
 mod config;
 mod database;

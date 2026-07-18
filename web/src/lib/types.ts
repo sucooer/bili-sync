@@ -364,6 +364,25 @@ export type Notifier = TelegramNotifier | WebhookNotifier | ServerChan3Notifier;
 
 export type Trigger = number | string;
 
+export type OpenListAuth =
+	| { type: 'none' }
+	| { type: 'token'; token: string }
+	| { type: 'password'; username: string; password: string };
+
+export interface OpenListOption {
+	endpoint: string;
+	remote_dir: string;
+	auth: OpenListAuth;
+}
+
+export interface AutoUploadOption {
+	enabled: boolean;
+	openlist: OpenListOption;
+	retry_attempts: number;
+	retry_delay_secs: number;
+	delete_local_after_upload: boolean;
+}
+
 export interface Config {
 	auth_token: string;
 	bind_address: string;
@@ -372,6 +391,7 @@ export interface Config {
 	danmaku_option: DanmakuOption;
 	skip_option: SkipOption;
 	youtube: YoutubeOption;
+	auto_upload: AutoUploadOption;
 	video_name: string;
 	page_name: string;
 	notifiers: Notifier[] | null;
