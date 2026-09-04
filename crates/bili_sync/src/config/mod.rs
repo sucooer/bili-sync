@@ -11,8 +11,8 @@ pub use crate::config::current::{CONFIG_DIR, Config, default_manual_download_roo
 pub(crate) use crate::config::default::default_bind_address;
 pub use crate::config::handlebar::TEMPLATE;
 pub use crate::config::item::{
-    AutoUploadOption, ConcurrentDownloadLimit, NFOTimeType, OpenListAuth, PathSafeTemplate, RateLimit, Trigger,
-    YoutubeSkipOption, YoutubeVideoFormat,
+    AutoUploadOption, ConcurrentDownloadLimit, DanmakuUpdateMilestone, NFOTimeType, OpenListAuth, PathSafeTemplate,
+    RateLimit, Trigger, YoutubeSkipOption, YoutubeVideoFormat,
 };
 pub use crate::config::versioned_cache::VersionedCache;
 pub use crate::config::versioned_config::VersionedConfig;

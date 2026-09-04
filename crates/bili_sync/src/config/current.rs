@@ -15,7 +15,8 @@ use crate::config::default::{
     default_time_format,
 };
 use crate::config::item::{
-    AutoUploadOption, ConcurrentLimit, NFOTimeType, OpenListAuth, SkipOption, Trigger, YoutubeOption,
+    AutoUploadOption, ConcurrentLimit, DanmakuUpdatePolicy, NFOTimeType, OpenListAuth, SkipOption, Trigger,
+    YoutubeOption,
 };
 use crate::notifier::Notifier;
 use crate::utils::model::{load_db_config, save_db_config};
@@ -48,6 +49,8 @@ pub struct Config {
     pub credential: Credential,
     pub filter_option: FilterOption,
     pub danmaku_option: DanmakuOption,
+    #[serde(default)]
+    pub danmaku_update_policy: DanmakuUpdatePolicy,
     #[serde(default)]
     pub skip_option: SkipOption,
     #[serde(default)]
@@ -144,6 +147,9 @@ impl Config {
                 }
             }
         };
+        if let Err(error) = self.danmaku_update_policy.validate() {
+            errors.push(error);
+        }
         if !errors.is_empty() {
             bail!(errors.into_iter().map(|e| format!("- {}", e)).join("\n"));
         }
@@ -159,6 +165,7 @@ impl Default for Config {
             credential: Credential::default(),
             filter_option: FilterOption::default(),
             danmaku_option: DanmakuOption::default(),
+            danmaku_update_policy: DanmakuUpdatePolicy::default(),
             skip_option: SkipOption::default(),
             youtube: YoutubeOption::default(),
             auto_upload: AutoUploadOption::default(),

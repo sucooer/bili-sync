@@ -307,6 +307,15 @@ export interface DanmakuOption {
 	time_offset: number;
 }
 
+export interface DanmakuUpdatePolicy {
+	enabled: boolean;
+	milestones: DanmakuUpdateMilestone[];
+}
+
+export type DanmakuUpdateMilestone =
+	| { type: 'once'; at_days: number }
+	| { type: 'periodic'; until_days: number; interval_hours: number };
+
 export interface SkipOption {
 	no_poster: boolean;
 	no_video_nfo: boolean;
@@ -395,6 +404,7 @@ export interface Config {
 	credential: Credential;
 	filter_option: FilterOption;
 	danmaku_option: DanmakuOption;
+	danmaku_update_policy: DanmakuUpdatePolicy;
 	skip_option: SkipOption;
 	youtube: YoutubeOption;
 	auto_upload: AutoUploadOption;

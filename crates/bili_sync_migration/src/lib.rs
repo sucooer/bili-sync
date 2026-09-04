@@ -17,6 +17,7 @@ mod m20260712_123205_add_filter_option;
 mod m20260717_120000_add_upload_record;
 mod m20260718_000000_remove_upload_record_fks;
 mod m20260821_025000_mark_empty_tags_for_refetch;
+mod m20260823_000001_add_danmaku_last_synced_at;
 
 pub struct Migrator;
 
@@ -41,6 +42,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260717_120000_add_upload_record::Migration),
             Box::new(m20260718_000000_remove_upload_record_fks::Migration),
             Box::new(m20260821_025000_mark_empty_tags_for_refetch::Migration),
+            Box::new(m20260823_000001_add_danmaku_last_synced_at::Migration),
         ]
     }
 }

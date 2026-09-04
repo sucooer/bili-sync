@@ -130,6 +130,7 @@ pub async fn download_video_by_bvid(
                 path: None,
                 image: page_info.first_frame,
                 download_status: 0,
+                danmaku_last_synced_at: None,
                 created_at: String::new(),
             }
         })
