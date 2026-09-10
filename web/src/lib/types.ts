@@ -375,7 +375,18 @@ export interface ServerChan3Notifier {
 	sendkey: string;
 }
 
-export type Notifier = TelegramNotifier | WebhookNotifier | ServerChan3Notifier;
+export interface SmtpNotifier {
+	type: 'smtp';
+	host: string;
+	port: number;
+	encryption: 'none' | 'tls' | 'starttls';
+	username: string;
+	password: string;
+	from: string;
+	to: string;
+}
+
+export type Notifier = TelegramNotifier | WebhookNotifier | ServerChan3Notifier | SmtpNotifier;
 
 export type Trigger = number | string;
 

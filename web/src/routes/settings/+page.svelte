@@ -1068,6 +1068,13 @@
 												<div class="flex items-center gap-2">
 													<Badge variant="secondary">Webhook</Badge>
 												</div>
+											{:else if notifier.type === 'smtp'}
+												<div class="flex flex-wrap items-center gap-2">
+													<Badge variant="secondary">SMTP</Badge>
+													<span class="text-muted-foreground text-sm break-all">
+														{notifier.host}:{notifier.port} → {notifier.to}
+													</span>
+												</div>
 											{/if}
 										</div>
 										<div class="flex gap-2">
@@ -1246,7 +1253,7 @@
 	<Dialog.Portal>
 		<Dialog.Overlay class="bg-background/80 fixed inset-0 z-50 backdrop-blur-sm" />
 		<Dialog.Content
-			class="bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg duration-200 sm:rounded-lg"
+			class="bg-background fixed top-[50%] left-[50%] z-50 grid max-h-[90vh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto border p-6 shadow-lg duration-200 sm:rounded-lg"
 		>
 			<Dialog.Header>
 				<Dialog.Title>

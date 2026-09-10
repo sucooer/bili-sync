@@ -33,6 +33,7 @@ hex = { workspace = true }
 hickory-resolver = { workspace = true }
 itertools = { workspace = true }
 leaky-bucket = { workspace = true }
+lettre = { workspace = true }
 md5 = { workspace = true }
 memchr = { workspace = true }
 once_cell = { workspace = true }

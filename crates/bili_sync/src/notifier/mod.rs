@@ -3,9 +3,12 @@ mod message;
 
 use std::collections::HashMap;
 
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow, bail};
 use futures::future;
 pub use info::DownloadNotifyInfo;
+use lettre::message::{Attachment, MultiPart, SinglePart};
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{AsyncSmtpTransport, AsyncTransport, Tokio1Executor};
 pub use message::Message;
 use reqwest::header;
 use serde::de::Error as _;
@@ -36,6 +39,25 @@ pub enum Notifier {
         // 一个内部辅助字段，用于决定是否强制渲染当前模板，在测试时使用
         ignore_cache: Option<()>,
     },
+    Smtp {
+        host: String,
+        port: u16,
+        encryption: SmtpEncryption,
+        #[serde(default)]
+        username: String,
+        #[serde(default)]
+        password: String,
+        from: String,
+        to: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SmtpEncryption {
+    None,
+    Tls,
+    StartTls,
 }
 
 pub fn webhook_template_key(url: &str) -> String {
@@ -125,6 +147,56 @@ impl Notifier {
                     "desp": desp.as_ref(),
                 });
                 client.post(send_url).json(&payload).send().await?;
+            }
+            Notifier::Smtp {
+                host,
+                port,
+                encryption,
+                username,
+                password,
+                from,
+                to,
+            } => {
+                let email = lettre::Message::builder()
+                    .from(from.parse()?)
+                    .to(to.parse()?)
+                    .subject("BiliSync 通知");
+                let email = if let Some(image_url) = &message.image_url {
+                    let response = client.get(image_url).send().await?.error_for_status()?;
+                    let content_type = response
+                        .headers()
+                        .get(header::CONTENT_TYPE)
+                        .ok_or_else(|| anyhow!("Missing image Content-Type"))?
+                        .to_str()?
+                        .parse()?;
+                    let image = response.bytes().await?.to_vec();
+                    let content_id = uuid::Uuid::new_v4().to_string();
+                    let html = format!(
+                        r#"<p>{}</p><img src="cid:{content_id}" style="max-width: 100%;" alt="">"#,
+                        handlebars::html_escape(&message.message).replace('\n', "<br>")
+                    );
+                    email.multipart(
+                        MultiPart::alternative()
+                            .singlepart(SinglePart::plain(message.message.to_string()))
+                            .multipart(
+                                MultiPart::related()
+                                    .singlepart(SinglePart::html(html))
+                                    .singlepart(Attachment::new_inline(content_id).body(image, content_type)),
+                            ),
+                    )?
+                } else {
+                    email.singlepart(SinglePart::plain(message.message.to_string()))?
+                };
+                let mut mailer = match encryption {
+                    SmtpEncryption::None => AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(host),
+                    SmtpEncryption::Tls => AsyncSmtpTransport::<Tokio1Executor>::relay(host)?,
+                    SmtpEncryption::StartTls => AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(host)?,
+                }
+                .port(*port);
+                if !username.is_empty() || !password.is_empty() {
+                    mailer = mailer.credentials(Credentials::new(username.clone(), password.clone()));
+                }
+                mailer.build().send(email).await?;
             }
         }
         Ok(())

@@ -1,16 +1,17 @@
 <script lang="ts">
+	import PasswordInput from '$lib/components/custom/password-input.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { toast } from 'svelte-sonner';
-	import type { Notifier } from '$lib/types';
+	import type { Notifier, SmtpNotifier } from '$lib/types';
 
 	export let notifier: Notifier | null = null;
 	export let onSave: (notifier: Notifier) => void;
 	export let onCancel: () => void;
 
-	let type: 'telegram' | 'webhook' | 'serverChan3' = 'telegram';
+	let type: Notifier['type'] = 'telegram';
 	let botToken = '';
 	let chatId = '';
 	let skipImage = false;
@@ -18,6 +19,13 @@
 	let webhookTemplate = '';
 	let webhookHeaders: { key: string; value: string }[] = [];
 	let serverChan3Sendkey = '';
+	let smtpHost = '';
+	let smtpPort: number | undefined = 465;
+	let smtpEncryption: SmtpNotifier['encryption'] = 'tls';
+	let smtpUsername = '';
+	let smtpPassword = '';
+	let smtpFrom = '';
+	let smtpTo = '';
 
 	// 初始化表单
 	$: {
@@ -44,7 +52,7 @@
 					webhookHeaders = [];
 				}
 				serverChan3Sendkey = '';
-			} else {
+			} else if (notifier.type === 'serverChan3') {
 				type = 'serverChan3';
 				botToken = '';
 				chatId = '';
@@ -53,6 +61,22 @@
 				webhookTemplate = '';
 				webhookHeaders = [];
 				serverChan3Sendkey = notifier.sendkey;
+			} else {
+				type = 'smtp';
+				botToken = '';
+				chatId = '';
+				skipImage = false;
+				webhookUrl = '';
+				webhookTemplate = '';
+				webhookHeaders = [];
+				serverChan3Sendkey = '';
+				smtpHost = notifier.host;
+				smtpPort = notifier.port;
+				smtpEncryption = notifier.encryption;
+				smtpUsername = notifier.username;
+				smtpPassword = notifier.password;
+				smtpFrom = notifier.from;
+				smtpTo = notifier.to;
 			}
 		} else {
 			type = 'telegram';
@@ -63,6 +87,13 @@
 			webhookTemplate = '';
 			webhookHeaders = [];
 			serverChan3Sendkey = '';
+			smtpHost = '';
+			smtpPort = 465;
+			smtpEncryption = 'tls';
+			smtpUsername = '';
+			smtpPassword = '';
+			smtpFrom = '';
+			smtpTo = '';
 		}
 	}
 
@@ -113,7 +144,7 @@
 				headers: Object.keys(headers).length > 0 ? headers : null
 			};
 			onSave(newNotifier);
-		} else {
+		} else if (type === 'serverChan3') {
 			const rawValue = serverChan3Sendkey.trim();
 			if (!rawValue) {
 				toast.error('请输入 Server酱³ SendKey');
@@ -134,6 +165,36 @@
 				sendkey: sendkeyMatch[1]
 			};
 			onSave(newNotifier);
+		} else {
+			if (!smtpHost.trim()) {
+				toast.error('请输入 SMTP 服务器地址');
+				return;
+			}
+			if (
+				smtpPort === undefined ||
+				!Number.isInteger(smtpPort) ||
+				smtpPort < 1 ||
+				smtpPort > 65535
+			) {
+				toast.error('端口必须是 1 到 65535 之间的整数');
+				return;
+			}
+			if (!smtpFrom.trim() || !smtpTo.trim()) {
+				toast.error('请输入发件人和收件人');
+				return;
+			}
+
+			const newNotifier: Notifier = {
+				type: 'smtp',
+				host: smtpHost.trim(),
+				port: smtpPort,
+				encryption: smtpEncryption,
+				username: smtpUsername.trim(),
+				password: smtpPassword,
+				from: smtpFrom.trim(),
+				to: smtpTo.trim()
+			};
+			onSave(newNotifier);
 		}
 	}
 </script>
@@ -149,6 +210,7 @@
 			<option value="telegram">Telegram Bot</option>
 			<option value="serverChan3">Server酱³</option>
 			<option value="webhook">Webhook</option>
+			<option value="smtp">SMTP 邮件</option>
 		</select>
 	</div>
 
@@ -241,6 +303,51 @@
 			<p class="text-muted-foreground text-xs">
 				添加自定义请求头，例如：Authorization: Bearer your_token
 			</p>
+		</div>
+	{:else if type === 'smtp'}
+		<div class="space-y-2">
+			<Label for="smtp-host">SMTP 服务器</Label>
+			<Input id="smtp-host" placeholder="smtp.example.com" bind:value={smtpHost} />
+		</div>
+		<div class="grid grid-cols-2 gap-4">
+			<div class="space-y-2">
+				<Label for="smtp-encryption">加密方式</Label>
+				<select
+					id="smtp-encryption"
+					class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+					bind:value={smtpEncryption}
+					onchange={(event) => {
+						smtpPort = { none: 25, tls: 465, starttls: 587 }[
+							event.currentTarget.value as SmtpNotifier['encryption']
+						];
+					}}
+				>
+					<option value="tls">TLS</option>
+					<option value="starttls">STARTTLS</option>
+					<option value="none">无加密</option>
+				</select>
+			</div>
+			<div class="space-y-2">
+				<Label for="smtp-port">端口</Label>
+				<Input id="smtp-port" type="number" min="1" max="65535" bind:value={smtpPort} />
+			</div>
+		</div>
+		<div class="space-y-2">
+			<Label for="smtp-username">用户名（可选）</Label>
+			<Input id="smtp-username" placeholder="SMTP 登录用户名" bind:value={smtpUsername} />
+		</div>
+		<div class="space-y-2">
+			<Label for="smtp-password">密码／授权码（可选）</Label>
+			<PasswordInput id="smtp-password" placeholder="密码或邮箱授权码" bind:value={smtpPassword} />
+			<p class="text-muted-foreground text-xs">无需认证时，用户名和密码都留空。</p>
+		</div>
+		<div class="space-y-2">
+			<Label for="smtp-from">发件人</Label>
+			<Input id="smtp-from" placeholder="sender@example.com" bind:value={smtpFrom} />
+		</div>
+		<div class="space-y-2">
+			<Label for="smtp-to">收件人</Label>
+			<Input id="smtp-to" placeholder="recipient@example.com" bind:value={smtpTo} />
 		</div>
 	{/if}
 </div>
